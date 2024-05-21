@@ -53,15 +53,16 @@ export function schemaInfo(
 	const array =
 		schema.items && types.includes('array')
 			? ((Array.isArray(schema.items) ? schema.items : [schema.items]).filter(
-					(s) => typeof s !== 'boolean'
-				) as JSONSchema7[])
+				(s) => typeof s !== 'boolean'
+			) as JSONSchema7[])
 			: undefined;
 
+	const currentSchema: JSONSchema7 = (schema.additionalProperties ? schema.additionalProperties : schema) as JSONSchema7;
 	const properties =
-		schema.properties && types.includes('object')
+		currentSchema.properties && types.includes('object')
 			? (Object.fromEntries(
-					Object.entries(schema.properties).filter(([, value]) => typeof value !== 'boolean')
-				) as { [key: string]: JSONSchema7 })
+				Object.entries(currentSchema.properties).filter(([, value]) => typeof value !== 'boolean')
+			) as { [key: string]: JSONSchema7 })
 			: undefined;
 
 	const union = unionInfo(schema)?.filter((u) => u.type !== 'null' && u.const !== null);
@@ -70,11 +71,11 @@ export function schemaInfo(
 		types: types.filter((s) => s !== 'null') as SchemaInfo['types'],
 		isOptional,
 		isNullable: types.includes('null'),
-		schema,
+		schema:currentSchema,
 		union: union?.length ? union : undefined,
 		array,
 		properties,
-		required: schema.required
+		required: currentSchema.required
 	};
 }
 

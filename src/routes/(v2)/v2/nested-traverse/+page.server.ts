@@ -1,63 +1,38 @@
-import { nerveForm } from './schema.js';
-import { z } from 'zod';
-import { message, superValidate } from '$lib/index.js';
-import { zod } from '$lib/adapters/zod.js';
-import type { Actions } from '@sveltejs/kit';
+import {superValidate} from '$lib/index.js';
+import {z} from 'zod';
+import {zod} from '$lib/adapters/zod.js';
 
-type DeficitTypeKey = keyof z.infer<typeof nerveForm>;
-type NerveFormData = z.infer<typeof nerveForm>;
+const schema = z.object({
+	id: z.string(),
+	options: z.record(z.string(), z.object({
+		label: z.string().refine(value => value.length > 0, {
+			message: "Label is required"
+		}),
+	})),
+})
 
-type Side = 'left' | 'right';
-
-export async function load() {
-	const findings = [
-		{
-			id: '1',
-			key: 'nerve',
-			nerve: 'c5',
-			type: 'motor',
-			grade: 25,
-			side: 'left',
-			comments: 'This is a comment'
+const row = {
+	id: "1",
+	options: {
+		"1": {
+			label: "Option 1",
 		},
-		{
-			id: '2',
-			key: 'nerve',
-			nerve: 'c5',
-			type: 'sensory',
-			grade: 35,
-			side: 'left',
-			comments: 'This is a comment'
-		}
-	];
-
-	const emptyData = {
-		motor: { left: {}, right: {} },
-		sensory: { left: {}, right: {} },
-		dysesthesia: { left: {}, right: {} }
-	};
-
-	const formData = findings.reduce<NerveFormData>((acc, cur) => {
-		if (cur.grade && cur.type && cur.side) {
-			acc[cur.type as DeficitTypeKey][cur.side as Side].grade = cur.grade;
-			acc[cur.type as DeficitTypeKey][cur.side as Side].comments = cur.comments || '';
-		}
-		return acc;
-		// @ts-expect-error Incomplete type, should be undefined
-	}, emptyData);
-
-	// @ts-expect-error Incomplete type, should be undefined
-	const form = await superValidate(formData, zod(nerveForm));
-	return {
-		form
-	};
+		"2": {
+			label: "",
+		},
+	}
 }
 
-export const actions: Actions = {
-	default: async ({ request }) => {
-		const form = await superValidate(request, zod(nerveForm));
+export const actions = {
+	async save({request}) {
+		const form = await superValidate(request, zod(schema))
 
-		if (!form.valid) return message(form, 'Not valid', { status: 400 });
-		return message(form, 'OK');
+		console.log(form)
 	}
+}
+
+export const load = async () => {
+	const form = await superValidate(row, zod(schema));
+
+	return {form}
 };
